@@ -1,33 +1,39 @@
 # FanCtl
 
-**Native fan control for Apple Silicon Macs.** · **Apple Silicon Mac 原生风扇控制。**
+Fan control for Apple Silicon Macs. Qt 6 / QML window, a menu-bar icon, and a small
+root helper that writes to the SMC.
 
 ![FanCtl](docs/screenshot.png)
 
-[English](#fanc) · [中文](#中文)
+[English](#why) · [中文](#中文)
 
 ---
 
 ## Why
 
-macOS decides fan speeds on its own, and on Apple Silicon there is no user-facing
-way to say “keep it at 2000 rpm” or “follow the CPU temperature”. FanCtl fills that
-gap with a UI that stays out of the way: one window, a menu-bar icon, and a helper
-that only exists so the app never has to run as root.
+macOS decides fan speeds by itself. On Apple Silicon there is no setting for "hold
+2000 rpm" or "follow this temperature sensor". FanCtl does that, and stays out of the
+way while it does.
 
 ## Features
 
-| | |
-|---|---|
-| **Three control modes** | *Auto* hands the fans back to macOS and shows the current speed read-only. *Manual* fixes a speed with a slider or a typed value. *Curve* follows a temperature sensor. |
-| **Draggable fan curve** | Drag points on a live chart, double-click to add or remove nodes, watch the current temperature and actual rpm on the same graph. |
-| **Presets** | Save named curves, switch with one click, delete what you no longer use. Stored in `QSettings`, survive updates. |
-| **Live temperatures** | A fixed right-hand sidebar with the 12 most useful sensors, human-readable names (CPU Performance Core, GPU Cluster, Battery, …) instead of raw SMC keys. |
-| **Day / night themes** | Warm light and warm dark palettes, remembered across launches. |
-| **中文 / English** | Full UI switch, including sensor names and diagnostics. |
-| **Menu-bar companion** | Closing the window keeps FanCtl running; the icon shows `自动` or the live rpm. Quit from the menu restores system control. |
-| **Diagnostics built in** | *Diagnose* enumerates the SMC from user space; *Verify* writes a small rpm delta and checks the fans actually moved, then restores auto. |
-| **CLI** | `fanctl` offers the same diagnostics for scripting and troubleshooting. |
+- **Auto, Manual, Curve.** Auto leaves the fans to macOS and shows what it is doing.
+  Manual holds a speed from a slider or a typed number. Curve follows a temperature
+  sensor.
+- **Draw the curve yourself.** Drag points, double-click empty space to add one,
+  double-click a point to remove it. The chart shows the current temperature and the
+  live rpm at the same time.
+- **Presets.** Save a curve under a name, switch with one click. Stored in QSettings,
+  so they survive updates.
+- **Temperatures on the right.** The 12 sensors worth watching, named "CPU Performance
+  Core" instead of raw SMC keys.
+- **Light and dark themes.** Both warm. Your choice is remembered.
+- **Chinese and English UI.** Sensor names and diagnostics switch too.
+- **Menu bar.** Close the window and it keeps running; the icon shows the current speed.
+  Quit from the menu and the fans go back to macOS.
+- **Checks that come with it.** Diagnose reads the SMC and changes nothing. Verify
+  writes a small rpm change, checks the fans actually moved, then restores auto.
+- **A CLI.** `fanctl` does the same checks from a terminal.
 
 <p align="center">
   <img src="docs/english.png" width="49%">
@@ -36,26 +42,26 @@ that only exists so the app never has to run as root.
 
 ## Requirements
 
-- Apple Silicon Mac (arm64). Intel Macs are **not** supported by the prebuilt binary.
-- macOS 13.0 or newer.
-- To build: Xcode or the Command Line Tools, CMake ≥ 3.20, and Qt 6.7 (`brew install qt`).
-- One administrator approval on first run, to install the background helper.
+- Apple Silicon Mac. The prebuilt app is arm64 only.
+- macOS 13 or newer.
+- To build: Xcode or the Command Line Tools, CMake 3.20+, Qt 6.7 (`brew install qt`).
+- Admin rights once, to install the helper.
 
 ## Install
 
 ### Prebuilt
 
-Download `FanCtl.zip` from [Releases](../../releases), unzip, and move `FanCtl.app`
-to `/Applications`. The bundle ships its own copy of Qt, so nothing else is needed.
+Download `FanCtl.zip` from [Releases](../../releases), unzip it, and drag `FanCtl.app`
+to `/Applications`. Qt is inside the bundle, so there is nothing else to install.
 
-The app is ad-hoc signed, not notarized. On first launch macOS will refuse it —
-right-click → **Open**, or:
+The app is signed ad-hoc, not notarized, so macOS blocks it the first time. Right-click
+→ **Open**, or run:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/FanCtl.app
 ```
 
-### Build from source
+### Build
 
 ```bash
 git clone https://github.com/YF-7723/fanctl.git
@@ -64,46 +70,45 @@ cd fanctl
 open build/FanCtl.app
 ```
 
-`build.sh` is a thin wrapper around CMake. It exists because on some machines
-`/usr/bin/clang` refuses to run until the Xcode license is accepted; the script uses
-Xcode's internal toolchain instead and pre-defines a CMake target to work around
-Qt's obsolete `AGL.framework` reference.
+`build.sh` is a small wrapper around CMake. It exists because on some machines
+`/usr/bin/clang` refuses to run until the Xcode licence is accepted. The script calls
+Xcode's own toolchain instead, and defines a CMake target so Qt stops looking for the
+AGL framework that disappeared years ago.
 
-To produce a self-contained bundle (Qt frameworks, plugins and QML modules embedded):
+To make a bundle you can copy to another Mac:
 
 ```bash
-./package.sh        # -> dist/FanCtl.app, ~89 MB
+./package.sh        # -> dist/FanCtl.app, about 89 MB
 ```
 
 ## Usage
 
-Open the app. The first time, click **Enable fan control** and authorize once — the
-app installs its helper into `/usr/local/libexec/fanctl` and registers a LaunchDaemon.
+Open the app. The first time, click **Enable fan control** and approve once. That
+installs the helper to `/usr/local/libexec/fanctl` and registers a LaunchDaemon.
 
-**Auto** — fans are managed by macOS. The panel is read-only and shows what the
-system is doing.
+**Auto** — macOS controls the fans. The panel only shows the current speed.
 
-**Manual** — drag the slider or type a number. The blue knob is your target, the
-thin white tick is the actual speed; they separate while the fans spin up.
+**Manual** — use the slider or type a number. The blue dot is your target, the thin
+white line is the real speed. They drift apart while the fans spin up.
 
-**Curve** — pick one of the 12 sensors, then drag the points. Below the first point
-the fans hold its value; above the last point they hold that one. The dashed
-vertical line is the current temperature, the chip in the corner is the live rpm.
+**Curve** — pick one of the 12 sensors, then drag the points. Below the first point the
+fans hold its value; above the last point they hold the last. The dashed line is the
+current temperature, the small label in the corner is the live rpm.
 
-Closing the window does not quit: FanCtl keeps running in the menu bar and keeps
-applying your setting. Choose **Quit FanCtl** from the menu-bar icon to exit — the
-fans are handed back to macOS.
+Closing the window does not quit. FanCtl keeps running in the menu bar and keeps your
+setting. To stop it, choose **Quit FanCtl** from the menu-bar icon; the fans go back to
+macOS.
 
-### Command line
+### CLI
 
 ```bash
 fanctl status                     # fans, mode, temperatures
 fanctl sensors                    # temperatures only
-fanctl auto                       # hand fans back to macOS
+fanctl auto                       # give the fans back to macOS
 fanctl set all 2500               # fixed speed, all fans
 fanctl set 0 3000                 # only fan 0
 fanctl curve Tp01 35 1500 50 2500 70 4000 88 6000
-fanctl doctor                     # read-only SMC health check
+fanctl doctor                     # read-only SMC check
 fanctl selftest                   # prove control works, restores auto
 ```
 
@@ -118,54 +123,53 @@ FanCtl.app (QML)                fanctld (root, LaunchDaemon)
                                      write: root only
 ```
 
-Reading the SMC needs no privileges, so the UI reads temperatures directly. Writing
-does need root, so every write goes through a ~150 KB daemon that the app installs
-itself. The daemon owns the control loop: it re-applies the target every two seconds
-(so macOS cannot quietly take the fans back), caches sensor readings for cheap
-status polls, and restores automatic control when it is stopped.
+Reading the SMC needs no privileges, so the window reads temperatures directly. Writing
+does, so every write goes through a daemon of about 150 KB that the app installs itself.
+The daemon runs the control loop: it re-applies the target every two seconds so macOS
+cannot quietly take the fans back, caches sensor readings so status calls stay cheap,
+and hands control back when it stops.
 
-The SMC protocol itself is an 80-byte struct sent through `IOConnectCallStructMethod`
-with selector 2, where one byte selects read (5), write (6), enumerate (8) or key
-info (9). `src/core/smc.cpp` implements it from scratch.
+The protocol is an 80-byte struct sent with `IOConnectCallStructMethod`, selector 2.
+One byte picks the operation: 5 read, 6 write, 8 enumerate, 9 key info.
+`src/core/smc.cpp` implements it from scratch.
 
-One quirk worth knowing: not every Mac uses the classic big-endian layout. The M1 Pro
-this was developed on stores some keys **reversed** (`FNum` is literally `muNF`) and
-values **little-endian**. FanCtl enumerates the key space once to build an alias
-table, then probes `F0Mn`/`F0Mx` to pick the right byte order at runtime, so the same
-binary works on both conventions. The *Diagnose* panel reports which one it found.
+One thing worth knowing: not every Mac uses the classic big-endian layout. The M1 Pro
+this was written on stores some keys reversed (`FNum` is literally `muNF`) and values
+little-endian. FanCtl enumerates the key space once to build an alias table, then probes
+`F0Mn`/`F0Mx` to pick the byte order at runtime. Diagnose tells you which one it found.
 
 ## Safety
 
-This app writes to the SMC. Wrong values can stop the fans, make them noisy, or
-leave the machine under-cooled. There is no warranty — see [LICENSE](LICENSE).
+This app writes to the SMC. A wrong value can stop the fans or leave the machine too hot.
+No warranty — see [LICENSE](LICENSE).
 
-A few deliberate choices keep it boring:
+A few things keep it out of trouble:
 
-- Writes are clamped to each fan's `F{i}Mn`…`F{i}Mx` range.
-- The daemon restores automatic control on `SIGTERM`, on uninstall, and when you quit.
-- *Verify* always ends by restoring auto, whatever the result.
-- The UI refuses to write when the helper reports an incompatible protocol version.
+- Values are clamped to each fan's `F{i}Mn`…`F{i}Mx` range.
+- The daemon restores auto on `SIGTERM`, on uninstall, and when you quit.
+- Verify always restores auto, whether it passes or fails.
+- The app will not write if the helper reports a protocol version it does not know.
 
 ## Troubleshooting
 
-**“Helper isn't running”** — click **Start** in the window (one approval), or:
+**"Helper isn't running"** — click **Start** in the window (one approval), or:
 
 ```bash
 ./restart-daemon.command
 ```
 
-**“Update helper” badge** — the daemon is older than the app. Run `./install.command`.
+**"Update helper" badge** — the daemon is older than the app. Run `./install.command`.
 
-**No fans detected** — the machine may have none (MacBook Air), or the SMC may not
-expose `FNum`. `fanctl doctor` prints exactly what it found.
+**No fans detected** — the machine may not have any (MacBook Air), or the SMC does not
+expose `FNum`. `fanctl doctor` prints what it found.
 
-Logs: `tail -20 /var/log/fanctl.log`, job state: `launchctl print system/com.fanctl.daemon`.
+Logs: `tail -20 /var/log/fanctl.log`. Job state: `launchctl print system/com.fanctl.daemon`.
 
 ## Project layout
 
 ```
 src/core/     AppleSMC client, IPC protocol, QML-facing controller
-src/app/      QML engine entry point + macOS window/tray glue (Objective-C++)
+src/app/      QML entry point + macOS window and menu bar glue (Objective-C++)
 src/daemon/   fanctld, the root helper (no Qt dependency)
 src/cli/      fanctl
 qml/          theme, cards, panels, the curve chart
@@ -180,46 +184,39 @@ MIT — see [LICENSE](LICENSE).
 
 ## 中文
 
-### 为什么做它
+### 为什么做
 
-macOS 自己决定风扇转速，Apple Silicon 上也没有任何官方途径说「保持在 2000 转」或者
-「跟着 CPU 温度走」。FanCtl 补上这个缺口：一个窗口、一个菜单栏图标，以及一个存在的
-唯一理由就是「让界面本身不必以 root 运行」的后台组件。
+macOS 自己决定风扇转速。Apple Silicon 上没地方设成固定的 2000 转，也没法让它跟着某个
+温度传感器走。FanCtl 就是干这个的，平时不占地方。
 
 ### 功能
 
-| | |
-|---|---|
-| **三种模式** | *自动*：交还 macOS，只读显示当前转速。*手动*：滑杆或直接输入固定转速。*曲线*：跟随某个温度传感器。 |
-| **可拖拽风扇曲线** | 在实时图表上拖节点调整，双击空白加点、双击节点删点；同一张图里能看到当前温度和实际转速。 |
-| **预设** | 保存命名曲线，一键切换、随时删除。存在 `QSettings` 里，升级不丢。 |
-| **实时温度** | 右侧固定栏里 12 个最常用的传感器，显示成人能看懂的名字（CPU 性能核、GPU 集群、电池……）而不是 SMC 原始 key。 |
-| **日夜双主题** | 暖白 / 暖褐两套配色，选择被记住。 |
-| **中英文切换** | 整个界面都能切，包括传感器名称和诊断输出。 |
-| **菜单栏常驻** | 关窗不退出；图标显示「自动」或实时转速。从菜单里「退出」才真正结束并交还系统控制。 |
-| **内置诊断** | *诊断* 以普通用户身份枚举 SMC；*验证* 写入一个小幅转速并确认真实变化，无论成败都会还原。 |
-| **命令行** | `fanctl` 提供同一套诊断，方便脚本化和排错。 |
-
-<p align="center">
-  <img src="docs/english.png" width="49%">
-  <img src="docs/curve.png" width="49%">
-</p>
+- **自动、手动、曲线**：自动交给 macOS，只看当前转速；手动用滑杆或输入数字固定转速；
+  曲线跟着某个温度传感器走。
+- **曲线自己画**：拖动节点调整，双击空白加点，双击节点删点。图上同时有当前温度和实时转速。
+- **预设**：给曲线起个名字存下来，一键切换。存在 QSettings 里，升级不丢。
+- **右侧温度栏**：只放 12 个常用的传感器，名字是「CPU 性能核」这种，不是 SMC 原始 key。
+- **日夜主题**：两套都是暖色，选完会记住。
+- **中英文**：界面、传感器名、诊断输出都会跟着切。
+- **菜单栏**：关窗不退出，图标显示当前转速。从菜单里退出，风扇交还 macOS。
+- **自带检查**：诊断只读，不改任何东西；验证写一个小幅转速，看风扇有没有真的动，最后一定还原。
+- **命令行**：`fanctl` 在终端里做同样的事。
 
 ### 环境要求
 
-- Apple Silicon Mac（arm64）。预编译版本**不支持** Intel Mac。
-- macOS 13.0 及以上。
-- 自行编译需要：Xcode 或命令行工具、CMake ≥ 3.20、Qt 6.7（`brew install qt`）。
-- 首次运行需要一次管理员授权，用来安装后台组件。
+- Apple Silicon Mac。预编译版本只有 arm64。
+- macOS 13 或更新。
+- 自己编译需要 Xcode 或命令行工具、CMake 3.20+、Qt 6.7（`brew install qt`）。
+- 安装后台组件时需要一次管理员授权。
 
 ### 安装
 
 #### 直接下载
 
 从 [Releases](../../releases) 下载 `FanCtl.zip`，解压后把 `FanCtl.app` 拖进 `/Applications`。
-bundle 里已经带了自己的 Qt，不需要额外装东西。
+Qt 已经在 bundle 里，不用另外装。
 
-App 只做了 ad-hoc 签名、未公证，首次打开会被 Gatekeeper 拦住——右键 →「打开」，或者：
+App 只做了 ad-hoc 签名、没有公证，所以第一次打开会被 macOS 拦住。右键 →「打开」，或者：
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/FanCtl.app
@@ -234,11 +231,11 @@ cd fanctl
 open build/FanCtl.app
 ```
 
-`build.sh` 只是 CMake 的薄封装。它存在的原因是：某些机器上 `/usr/bin/clang` 会因为
-「未接受 Xcode 许可」直接拒绝运行，脚本改用 Xcode 内部工具链，并在 CMake 里预先定义
-一个 target 绕开 Qt 对早已消失的 `AGL.framework` 的引用。
+`build.sh` 是 CMake 的一层薄封装。之所以需要它：有些机器上 `/usr/bin/clang` 会因为
+「没接受 Xcode 许可」直接拒绝运行，脚本改用 Xcode 自己的工具链；另外在 CMake 里先定义
+一个 target，免得 Qt 去找早就没了的 AGL framework。
 
-要打出自包含的包（把 Qt 框架、插件、QML 模块全部塞进 bundle）：
+想拷到别的 Mac 上跑，先打一个自带 Qt 的包：
 
 ```bash
 ./package.sh        # 产出 dist/FanCtl.app，约 89 MB
@@ -246,18 +243,18 @@ open build/FanCtl.app
 
 ### 使用
 
-打开 App，第一次点「启用风扇控制」并授权一次——它会把 helper 装到
-`/usr/local/libexec/fanctl` 并注册 LaunchDaemon。
+打开 App。第一次点「启用风扇控制」，授权一次，它会把 helper 装到
+`/usr/local/libexec/fanctl`，再注册一个 LaunchDaemon。
 
-**自动**：风扇完全交给 macOS，面板只读。
+**自动**：风扇归 macOS 管，面板只显示当前转速。
 
-**手动**：拖滑杆或输入数字。蓝色圆点是目标，白色细刻度是实际转速；加速过程中两者会分开。
+**手动**：拖滑杆或者输数字。蓝色圆点是目标，白色细线是实际转速，风扇加速时两者会分开。
 
-**曲线**：从 12 个传感器里选一个，然后拖节点。低于首点按首点转速，高于末点按末点转速。
-虚线是当前温度，角落里的小胶囊是实时转速。
+**曲线**：从 12 个传感器里选一个，然后拖节点。低于第一个点就按它的转速，高于最后一个点
+就按最后一个。虚线是当前温度，角落里的小标签是实时转速。
 
-关闭窗口不会退出：FanCtl 继续在菜单栏运行并保持你的设置。要从菜单栏图标里选
-**退出 FanCtl** 才结束，退出时风扇交还 macOS。
+关掉窗口不会退出。FanCtl 继续在菜单栏跑着，也继续用你的设置。要停下来，点菜单栏图标里的
+**退出 FanCtl**，风扇交还 macOS。
 
 #### 命令行
 
@@ -268,50 +265,47 @@ fanctl auto                       # 交还系统
 fanctl set all 2500               # 全部固定 2500
 fanctl set 0 3000                 # 只改 1 号风扇
 fanctl curve Tp01 35 1500 50 2500 70 4000 88 6000
-fanctl doctor                     # 只读 SMC 体检
-fanctl selftest                   # 端到端验证，结束自动还原
+fanctl doctor                     # 只读检查 SMC
+fanctl selftest                   # 实际验证一遍，结束自动还原
 ```
 
-### 实现原理
+### 实现
 
 ```
 FanCtl.app (QML)                fanctld (root, LaunchDaemon)
       │                                  │
       │  unix socket, 0660 root:admin    │  IOKit / AppleSMC
       └──── STATUS · MANUAL · CURVE ─────┘
-                                     读：免权限
+                                     读：不需要权限
                                      写：需要 root
 ```
 
-读 SMC 不需要特权，所以界面直接读温度；写需要 root，于是所有写操作都交给一个约
-150 KB 的守护进程，由 App 自己安装。控制循环在守护进程里：每两秒重新施加一次目标
-（防止 macOS 悄悄把控制权拿回去），传感器读数缓存在后台线程里让状态查询保持廉价，
-被终止时自动交还系统控制。
+读 SMC 不需要权限，所以窗口自己读温度。写需要 root，所以每次写都交给一个约 150 KB 的
+守护进程，由 App 自己装上。控制循环在守护进程里：每两秒重新写一次目标，免得 macOS 悄悄
+把风扇拿回去；传感器读数缓存在后台线程，状态查询就不用每次都读一遍；被停掉时自动交还。
 
-SMC 协议本身是一个 80 字节结构体，通过 `IOConnectCallStructMethod` 以 selector 2 发送，
-其中一个字节决定操作：读（5）、写（6）、枚举（8）、读 key 信息（9）。
-`src/core/smc.cpp` 是从零实现的。
+协议是一个 80 字节的结构体，用 `IOConnectCallStructMethod` 发出去，selector 是 2。
+其中一个字节决定做什么：5 读、6 写、8 枚举、9 读 key 信息。`src/core/smc.cpp` 是从零写的。
 
-有个值得知道的坑：并非所有 Mac 都用经典的大端布局。开发用的这台 M1 Pro 上，部分 key
-是**倒序存储**的（`FNum` 实际存成 `muNF`），数值是**小端**。FanCtl 会枚举一次 key 空间
-建立别名表，再用 `F0Mn`/`F0Mx` 的读数探测字节序，因此同一份二进制在两种约定下都能工作。
-「诊断」面板会告诉你它识别到的是哪一种。
+有一点值得知道：不是每台 Mac 都用经典的大端布局。写这个程序的那台 M1 Pro 上，部分 key
+是倒着存的（`FNum` 实际存成 `muNF`），数值是小端。FanCtl 会先枚举一遍 key 空间建一张别名表，
+再用 `F0Mn`/`F0Mx` 的读数判断该用哪种字节序，所以同一份二进制两边都能跑。诊断里会写它
+认出来的是哪一种。
 
 ### 安全
 
-这个程序会写 SMC。写错参数可能导致风扇停转、噪音变大或散热不足，不提供任何担保——
-见 [LICENSE](LICENSE)。
+这个程序会写 SMC。参数写错可能让风扇停转，或者让机器散热不够。没有担保，见 [LICENSE](LICENSE)。
 
-几个刻意的设计让它尽量「无聊」：
+几件事让它不至于出事：
 
-- 写入会被夹到每台风扇的 `F{i}Mn`…`F{i}Mx` 区间；
-- 守护进程在 `SIGTERM`、卸载、以及你退出 App 时都会还原自动控制；
-- 「验证」无论成功失败，结束时一定还原自动；
-- 后台组件报告协议版本不兼容时，界面会拒绝写入。
+- 写入会夹在每台风扇的 `F{i}Mn`…`F{i}Mx` 之间；
+- 守护进程收到 `SIGTERM`、被卸载、或者你退出 App 时，都会还原自动控制；
+- 验证不管成功还是失败，最后都还原；
+- 后台组件报的协议版本对不上时，App 不会写。
 
 ### 排错
 
-**「后台组件没有运行」**：点窗口里的「启动」（需要一次授权），或者：
+**「后台组件没有运行」**：点窗口里的「启动」，授权一次；或者：
 
 ```bash
 ./restart-daemon.command
@@ -319,20 +313,20 @@ SMC 协议本身是一个 80 字节结构体，通过 `IOConnectCallStructMethod
 
 **标题栏显示「组件需更新」**：守护进程比 App 旧，跑一次 `./install.command`。
 
-**没有检测到风扇**：这台机器可能本来就没有（MacBook Air），也可能 SMC 没有暴露
-`FNum`。`fanctl doctor` 会打印它到底看到了什么。
+**没检测到风扇**：这台机器可能本来就没有（MacBook Air），也可能 SMC 没暴露 `FNum`。
+`fanctl doctor` 会打印它到底看到了什么。
 
-日志：`tail -20 /var/log/fanctl.log`；任务状态：`launchctl print system/com.fanctl.daemon`。
+日志：`tail -20 /var/log/fanctl.log`。任务状态：`launchctl print system/com.fanctl.daemon`。
 
 ### 目录结构
 
 ```
-src/core/     AppleSMC 客户端、IPC 协议、面向 QML 的控制器
-src/app/      QML 引擎入口 + macOS 窗口/菜单栏桥接（Objective-C++）
+src/core/     AppleSMC 客户端、IPC 协议、给 QML 用的控制器
+src/app/      QML 入口 + macOS 窗口和菜单栏的胶水（Objective-C++）
 src/daemon/   fanctld，root 守护进程（不依赖 Qt）
 src/cli/      fanctl
-qml/          主题、卡片、面板、曲线图表
-packaging/    Info.plist 与随包分发的 LaunchDaemon 配置
+qml/          主题、卡片、面板、曲线图
+packaging/    Info.plist 和随包分发的 LaunchDaemon 配置
 ```
 
 ### 许可
