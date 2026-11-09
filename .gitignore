@@ -7,3 +7,6 @@ dist/
 # 系统垃圾
 .DS_Store
 *.log
+
+# 发布产物
+*.zip
