@@ -1,0 +1,9 @@
+# 构建产物
+build/
+dist/
+*.o
+*.a
+
+# 系统垃圾
+.DS_Store
+*.log
