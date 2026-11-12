@@ -26,17 +26,23 @@ for m in QtQuick QtQml QtCore; do
     [ -d "$QT_QML/$m" ] && cp -R "$QT_QML/$m" "$APP/Contents/Resources/qml/"
 done
 
+echo "==> 裁剪用不到的 QML 模块"
+QMLROOT="$APP/Contents/Resources/qml/QtQuick"
+for m in Dialogs Effects LocalStorage NativeStyle Particles Pdf Scene2D Scene3D \
+         Shapes Timeline VirtualKeyboard tooling; do
+    rm -rf "$QMLROOT/$m"
+done
+for st in Fusion Imagine Material Universal designer iOS; do
+    rm -rf "$QMLROOT/Controls/$st"
+done
+
 echo "==> 补齐运行时缺的 Qt 框架"
 codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
-for _ in $(seq 1 25); do
-    OUT=$(timeout 4 "$APP/Contents/MacOS/FanCtl" --screenshot /tmp/_pkg.png 2>&1 || true)
-    MISSING=$(echo "$OUT" | grep -o "@rpath/[A-Za-z0-9_]*\.framework" | head -1 | sed 's|@rpath/||')
-    [ -z "$MISSING" ] && break
-    [ -d "$APP/Contents/Frameworks/$MISSING" ] && break
-    echo "    + $MISSING"
-    cp -R "$QT_LIB/$MISSING" "$APP/Contents/Frameworks/" 2>/dev/null || break
-    codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
-done
+python3 tools/bundle_qt.py "$QT_LIB" "$APP"
+
+# macdeployqt 会顺带拷进两个用不到的框架，删掉能省 55 MB
+rm -rf "$APP/Contents/Frameworks/QtPdf.framework" \
+       "$APP/Contents/Frameworks/QtWidgets.framework"
 
 echo "==> 签名"
 codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
