@@ -89,6 +89,9 @@ add_custom_command(TARGET FanCtl POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
           "${CMAKE_CURRENT_SOURCE_DIR}/packaging/com.fanctl.daemon.plist"
           "$<TARGET_BUNDLE_CONTENT_DIR:FanCtl>/Resources/"
+  COMMAND ${CMAKE_COMMAND} -E copy
+          "${CMAKE_CURRENT_SOURCE_DIR}/assets/FanCtl.icns"
+          "$<TARGET_BUNDLE_CONTENT_DIR:FanCtl>/Resources/FanCtl.icns"
 )
 
 install(TARGETS fanctld fanctl_cli RUNTIME DESTINATION libexec)

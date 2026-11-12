@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="FanCtl">
+</p>
+
 # FanCtl
 
 Fan control for Apple Silicon Macs. A Qt 6 / QML window, a menu-bar icon, and a small
@@ -180,6 +184,7 @@ src/app/      QML entry point + macOS window and menu bar glue (Objective-C++)
 src/daemon/   fanctld, the root helper (no Qt dependency)
 src/cli/      fanctl
 qml/          theme, cards, panels, the curve chart
+assets/       icon generator and the .icns shipped in the bundle
 packaging/    Info.plist and the LaunchDaemon plist shipped inside the bundle
 ```
 
@@ -345,6 +350,7 @@ src/app/      QML 入口 + macOS 窗口和菜单栏的胶水（Objective-C++）
 src/daemon/   fanctld，root 守护进程（不依赖 Qt）
 src/cli/      fanctl
 qml/          主题、卡片、面板、曲线图
+assets/       图标生成脚本和打进 bundle 的 .icns
 packaging/    Info.plist 和随包分发的 LaunchDaemon 配置
 ```
 

@@ -10,6 +10,9 @@
     <string>com.fanctl.app</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
+    <key>CFBundleIconFile</key>
+    <string>FanCtl</string>
+
     <key>CFBundleName</key>
     <string>FanCtl</string>
     <key>CFBundlePackageType</key>
